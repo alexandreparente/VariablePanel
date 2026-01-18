@@ -3,7 +3,11 @@
 
 [general]
 name=Variables Panel
+
 qgisMinimumVersion=3.34
+qgisMaximumVersion=4.99
+supportsQt6=True
+
 description= Displays project variables in a dedicated panel.
 version=0.5
 author=Alexandre Parente Lima
