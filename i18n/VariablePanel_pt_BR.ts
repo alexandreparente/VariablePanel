@@ -5,18 +5,18 @@
     <name>VariablePanel</name>
     <message>
         <location filename="../variable_panel.py" line="222"/>
-        <source>&amp;Variables Panel</source>
+        <source>&amp;Variable Panel</source>
         <translation>&amp;Painel de Variáveis</translation>
     </message>
     <message>
-        <location filename="../variable_panel.py" line="153"/>
-        <source>Variables Panel</source>
-        <translation>Painel de Variáveis</translation>
+        <location filename="../variable_panel.py" line="64"/>
+        <source>Variable ToolBar</source>
+        <translation>Barra de ferramentas de Variáveis</translation>
     </message>
     <message>
-        <location filename="../variable_panel.py" line="64"/>
-        <source>Variables ToolBar</source>
-        <translation>Barra de ferramentas de Variáveis</translation>
+        <location filename="../variable_panel.py" line="153"/>
+        <source>Variable Panel</source>
+        <translation>Painel de Variáveis</translation>
     </message>
 </context>
 <context>
