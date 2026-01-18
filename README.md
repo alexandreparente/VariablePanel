@@ -9,7 +9,7 @@ The **Variable Panel** plugin for QGIS displays project variables in a dedicated
 
 
 ## Screenshot
-![alt text](https://github.com/alexandreparente/variablePanel/blob/main/screenshot/Captura%20de%20tela%20de%202024-12-08%2013-07-13.png)
+![alt text](https://github.com/alexandreparente/variablePanel/blob/main/screenshot/Captura%20de%20tela%20de%202025-09-22%2010-16-30.png)
 
 
 ## Installation
