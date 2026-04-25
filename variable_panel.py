@@ -21,10 +21,10 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QTimer, QSettings, QTranslator, QLocale ,QCoreApplication, Qt
+from qgis.PyQt.QtCore import QSettings, QTranslator, QLocale, QCoreApplication, Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction
-from .variable_panel_dockwidget import VariablePanelDockWidget
+from .variable_panel_dockwidget import VariablePanelDockWidget, tr
 from .resources import *
 
 import os.path
@@ -60,23 +60,18 @@ class VariablePanel:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = self.tr('&Variable Panel')
-        self.toolbar = self.iface.addToolBar(self.tr("Variable ToolBar"))
+        self.menu = tr('&Variable Panel')
+        self.toolbar = self.iface.addToolBar(tr("Variable ToolBar"))
         self.toolbar.setObjectName('VariablePanel')
 
         self.variable_dock = None
 
-        self.sideDockWidgetArea = Qt.RightDockWidgetArea
-
-    def tr(self,string):
-        return QCoreApplication.translate('VariablePanel', string)
+        self.sideDockWidgetArea = Qt.DockWidgetArea.RightDockWidgetArea
 
     def add_action(
         self,
         icon_path,
         text,
-        callback,
-        enabled_flag=True,
         add_to_menu=True,
         add_to_toolbar=True,
         status_tip=None,
@@ -92,13 +87,6 @@ class VariablePanel:
 
         :param text: Text that should be shown in menu items for this action.
         :type text: str
-
-        :param callback: Function to be called when the action is triggered.
-        :type callback: function
-
-        :param enabled_flag: A flag indicating if the action should be enabled
-            by default. Defaults to True.
-        :type enabled_flag: bool
 
         :param add_to_menu: Flag indicating whether the action should also
             be added to the menu. Defaults to True.
@@ -125,8 +113,6 @@ class VariablePanel:
 
         icon = QIcon(icon_path)
         action = QAction(icon, text, parent)
-        action.triggered.connect(callback)
-        action.setEnabled(enabled_flag)
 
         if status_tip is not None:
             action.setStatusTip(status_tip)
@@ -139,6 +125,7 @@ class VariablePanel:
 
         if add_to_menu:
             self.iface.addPluginToMenu(self.menu, action)
+
         self.actions.append(action)
 
         # Makes the button checkable
@@ -146,14 +133,14 @@ class VariablePanel:
 
         return action
 
-    # Initializes the GUI elements, including menu entries and toolbar icons, within the QGIS interface.
     def initGui(self):
+        """Initializes the GUI elements, including menu entries and toolbar icons, within the QGIS interface."""
+
         icon_path = ':/plugins/variable_panel/mIconExpression.svg'
-        # Adds an action to QGIS with an icon, text label, and callback function.
+        # Adds an action to QGIS with an icon and text label function.
         self.add_action(
             icon_path,
-            text=self.tr('Variable Panel'),
-            callback=self.toggleDockWidgetVisibility,
+            text=tr('Variable Panel'),
             parent=self.iface.mainWindow())
 
         # Initializes the dock widget in the specified side dock area.
@@ -161,30 +148,12 @@ class VariablePanel:
         # Hides the dock widget initially.
         self.variable_dock.hide()
 
-    # Toggles the visibility of the dock widget when the toolbar button is clicked.
-    def toggleDockWidgetVisibility(self):
-        if self.variable_dock is None:
-            # Initializes the dock widget after it is closed
-            self.createDockWidget(self.sideDockWidgetArea)
-            # Makes the dock widget visible and brings it to the front.
-            self.variable_dock.show()
-            # Ensures that the dock is shown on top
-            self.variable_dock.setUserVisible(True)
-        else:
-            # Used to show the dock when the plugin is restored on QGIS startup
-            if self.variable_dock.isVisible():
-                self.variable_dock.show()
-            else:
-                # Closes the dock widget if it is currently visible.
-                self.variable_dock.close()
-
-    # create the dock widget and its properties.
     def createDockWidget(self, sideDockWidgetArea):
-        # Creates a new instance of the dock widget.
+        """Creates and registers the Variable Panel dock widget."""
         self.variable_dock = VariablePanelDockWidget()
 
         # Allows the dock widget to be positioned on the left or right side of the interface.
-        self.variable_dock.setAllowedAreas(Qt.LeftDockWidgetArea | Qt.RightDockWidgetArea)
+        self.variable_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
 
         # Prevents the dock widget from being set as floating.
         self.variable_dock.setFloating(False)
@@ -198,28 +167,29 @@ class VariablePanel:
         # Links the dock widget's visibility toggle action with the toolbar button.
         self.variable_dock.setToggleVisibilityAction(self.actions[0])
 
-        # Connects the signal to handle the closing of the dock widget.
-        self.variable_dock.closed.connect(self.onDockWidgetClosed)
-
         # Connects the signal to track changes in the dock widget's location.
         self.variable_dock.dockLocationChanged.connect(self.onDockLocationChanged)
 
-    # Handles actions to perform when the dock widget is closed.
-    def onDockWidgetClosed(self):
-        # Disconnects the signal to avoid redundant calls.
-        self.variable_dock.closed.disconnect(self.onDockWidgetClosed)
-        # Delays resetting the dock widget reference to avoid conflicts with Qt event handling.
-        QTimer.singleShot(0, lambda: setattr(self, 'variable_dock', None))
-
-    # Updates the stored dock widget location when its position changes.
     def onDockLocationChanged(self, area):
+        """Updates the stored dock widget location when its position changes"""
         self.sideDockWidgetArea = area
 
-    # Unloads the plugin by removing its GUI elements from QGIS.
     def unload(self):
+        """Unloads the plugin by removing its GUI elements from QGIS."""
+        # Disconnect signals before unloading
+        if self.variable_dock:
+            try:
+                self.variable_dock.dockLocationChanged.disconnect(self.onDockLocationChanged)
+                self.iface.layerTreeView().currentLayerChanged.disconnect(  # ← corrigido
+                    self.variable_dock.handleActiveLayerChange)
+                self.variable_dock.project.customVariablesChanged.disconnect(
+                    self.variable_dock.refreshContext)
+            except (TypeError, RuntimeError):
+                pass
+
         # Removes each action from the QGIS menu and toolbar.
         for action in self.actions:
-            self.iface.removePluginMenu(self.tr('&Variable Panel'), action)
+            self.iface.removePluginMenu(tr('&Variable Panel'), action)
             self.iface.removeToolBarIcon(action)
         # Deletes the toolbar reference to clean up resources.
         del self.toolbar

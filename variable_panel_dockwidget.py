@@ -27,7 +27,7 @@ from qgis.PyQt.QtWidgets import QVBoxLayout, QWidget, QLabel, QTreeView
 from qgis.gui import QgsDockWidget, QgsVariableEditorWidget
 from qgis.core import QgsExpressionContextUtils, QgsExpressionContext, QgsProject
 from qgis.utils import iface
-from qgis.PyQt.QtCore import QCoreApplication, Qt
+from qgis.PyQt.QtCore import QCoreApplication
 
 
 def tr(string):
@@ -43,7 +43,7 @@ class VariablePanelDockWidget(QgsDockWidget):
         super(VariablePanelDockWidget, self).__init__(parent)
 
         # Basic Widget Setup
-        self.setWindowTitle(self.tr("Variables"))
+        self.setWindowTitle(tr("Variables"))
         self.setObjectName("VariablePanelDockWidget")
 
         # State Variables
@@ -67,20 +67,26 @@ class VariablePanelDockWidget(QgsDockWidget):
         main_layout.addWidget(self.variable_editor)
 
         # Standard dialog buttons (OK, Cancel, Apply).
-        self.button_box = QtWidgets.QDialogButtonBox(
-            QtWidgets.QDialogButtonBox.Ok |
-            QtWidgets.QDialogButtonBox.Cancel |
-            QtWidgets.QDialogButtonBox.Apply
-        )
+        buttons = (QtWidgets.QDialogButtonBox.StandardButton.Ok |
+                   QtWidgets.QDialogButtonBox.StandardButton.Cancel |
+                   QtWidgets.QDialogButtonBox.StandardButton.Apply)
+
+        self.button_box = QtWidgets.QDialogButtonBox(buttons)
         main_layout.addWidget(self.button_box)
 
         # Signal Connections
-        self.button_box.button(QtWidgets.QDialogButtonBox.Ok).clicked.connect(self.applyChangesAndClose)
-        self.button_box.button(QtWidgets.QDialogButtonBox.Cancel).clicked.connect(self.close)
-        self.button_box.button(QtWidgets.QDialogButtonBox.Apply).clicked.connect(self.applyChanges)
+        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).clicked.connect(
+        self.applyChangesAndClose)
+        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).clicked.connect(
+        self.close)
+        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Apply).clicked.connect(
+        self.applyChanges)
 
         # Connect to the signal that fires when the active layer changes in the QGIS Layers Panel.
         iface.layerTreeView().currentLayerChanged.connect(self.handleActiveLayerChange)
+
+        # Connect to the signal that fires when project variables are changed externally.
+        self.project.customVariablesChanged.connect(self.refreshContext)
 
         # Initialize the UI with the current context.
         self.handleActiveLayerChange(iface.activeLayer())
@@ -144,11 +150,25 @@ class VariablePanelDockWidget(QgsDockWidget):
         self.variable_editor.setEditableScopeIndex(index_to_set)
         self.current_editable_index = index_to_set
 
+    def refreshContext(self, *args):
+        """Refreshes the editor when variables are changed externally (e.g. via Project/Layer Properties)."""
+        layer = self.project.mapLayer(self.active_layer_id) if self.active_layer_id else None
+        self.handleActiveLayerChange(layer)
+
     def handleActiveLayerChange(self, layer):
         """
         Rebuilds the editor's context based on the newly selected active layer.
         This is the main function for updating the panel's view.
         """
+        # Disconnect layer variable signal from the previous active layer.
+        if self.active_layer_id:
+            previous_layer = self.project.mapLayer(self.active_layer_id)
+            if previous_layer:
+                try:
+                    previous_layer.customPropertyChanged.disconnect(self.refreshContext)
+                except (TypeError, RuntimeError):
+                    pass
+
         context = QgsExpressionContext()
         self.active_layer_id = None
 
@@ -157,6 +177,8 @@ class VariablePanelDockWidget(QgsDockWidget):
             context.appendScope(QgsExpressionContextUtils.projectScope(self.project))
             context.appendScope(QgsExpressionContextUtils.layerScope(layer))
             self.last_selected_scope_name = 'project'
+            # Connect to the signal that fires when the active layer's variables are changed externally.
+            layer.customPropertyChanged.connect(self.refreshContext)
         else:
             # If no layer is selected, only show the project scope.
             context.appendScope(QgsExpressionContextUtils.projectScope(self.project))
