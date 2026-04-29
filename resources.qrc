@@ -1,5 +1,0 @@
-<RCC>
-    <qresource prefix="/plugins/variable_panel" >
-        <file>mIconExpression.svg</file>
-    </qresource>
-</RCC>
