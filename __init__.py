@@ -23,6 +23,7 @@
  This script initializes the plugin, making it known to QGIS.
 """
 
+
 # noinspection PyPep8Naming
 def classFactory(iface):  # pylint: disable=invalid-name
     """Load VariablePanel class from file VariablePanel.
@@ -32,4 +33,5 @@ def classFactory(iface):  # pylint: disable=invalid-name
     """
     #
     from .variable_panel import VariablePanel
+
     return VariablePanel(iface)

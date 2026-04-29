@@ -8,14 +8,13 @@
 
 """
 
-__author__ = 'alexandre.parente@gmail.com'
-__date__ = '2024-11-16'
-__copyright__ = 'Copyright 2024, Alexandre Parente Lima'
+__author__ = "alexandre.parente@gmail.com"
+__date__ = "2024-11-16"
+__copyright__ = "Copyright 2024, Alexandre Parente Lima"
 
 import unittest
 
 from qgis.PyQt.QtGui import QIcon
-
 
 
 class VariablePanelDialogTest(unittest.TestCase):
@@ -31,14 +30,12 @@ class VariablePanelDialogTest(unittest.TestCase):
 
     def test_icon_png(self):
         """Test we can click OK."""
-        path = ':/plugins/VariablePanel/icon.png'
+        path = ":/plugins/VariablePanel/icon.png"
         icon = QIcon(path)
         self.assertFalse(icon.isNull())
 
+
 if __name__ == "__main__":
-    suite = unittest.makeSuite(VariablePanelResourcesTest)
+    suite = unittest.makeSuite(VariablePanelDialogTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-
-
-

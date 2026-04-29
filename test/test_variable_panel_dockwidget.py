@@ -8,17 +8,15 @@
 
 """
 
-__author__ = 'alexandre.parente@gmail.com'
-__date__ = '2024-11-16'
-__copyright__ = 'Copyright 2024, Alexandre Parente Lima'
+__author__ = "alexandre.parente@gmail.com"
+__date__ = "2024-11-16"
+__copyright__ = "Copyright 2024, Alexandre Parente Lima"
 
 import unittest
 
-from qgis.PyQt.QtGui import QDockWidget
+from utilities import get_qgis_app
 
 from variable_panel_dockwidget import VariablePanelDockWidget
-
-from utilities import get_qgis_app
 
 QGIS_APP = get_qgis_app()
 
@@ -38,8 +36,8 @@ class VariablePanelDockWidgetTest(unittest.TestCase):
         """Test we can click OK."""
         pass
 
+
 if __name__ == "__main__":
-    suite = unittest.makeSuite(VariablePanelDialogTest)
+    suite = unittest.makeSuite(VariablePanelDockWidgetTest)
     runner = unittest.TextTestRunner(verbosity=2)
     runner.run(suite)
-
