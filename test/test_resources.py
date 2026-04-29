@@ -12,13 +12,18 @@ __author__ = "alexandre.parente@gmail.com"
 __date__ = "2024-11-16"
 __copyright__ = "Copyright 2024, Alexandre Parente Lima"
 
+import os
 import unittest
 
 from qgis.PyQt.QtGui import QIcon
 
+from .utilities import get_qgis_app
+
+QGIS_APP = get_qgis_app()
+
 
 class VariablePanelDialogTest(unittest.TestCase):
-    """Test rerources work."""
+    """Test resources work."""
 
     def setUp(self):
         """Runs before each test."""
@@ -28,11 +33,20 @@ class VariablePanelDialogTest(unittest.TestCase):
         """Runs after each test."""
         pass
 
-    def test_icon_png(self):
-        """Test we can click OK."""
-        path = ":/plugins/VariablePanel/icon.png"
-        icon = QIcon(path)
-        self.assertFalse(icon.isNull())
+    def test_icon_exists(self):
+        """Test that the SVG icon file exists on disk."""
+        icon_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "mIconExpression.svg")
+        )
+        self.assertTrue(os.path.isfile(icon_path), f"Icon not found: {icon_path}")
+
+    def test_icon_loads(self):
+        """Test that QIcon loads the SVG without producing a null icon."""
+        icon_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..", "mIconExpression.svg")
+        )
+        icon = QIcon(icon_path)
+        self.assertFalse(icon.isNull(), f"QIcon is null for: {icon_path}")
 
 
 if __name__ == "__main__":

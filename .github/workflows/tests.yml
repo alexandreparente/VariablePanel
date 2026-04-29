@@ -1,0 +1,26 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-ltr:
+    name: QGIS LTR (3.34)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests (QGIS LTR)
+        run: make test-docker-ltr
+
+  test-latest:
+    name: QGIS Latest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests (QGIS Latest)
+        run: make test-docker-latest

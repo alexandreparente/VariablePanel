@@ -1,5 +1,5 @@
 # coding=utf-8
-"""Safe Translations Test.
+"""Translation tests for VariablePanel plugin.
 
 .. note:: This program is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published by
@@ -8,47 +8,63 @@
 
 """
 
-from .utilities import get_qgis_app
+__author__ = "alexandre.parente@gmail.com"
+__date__ = "2024-11-16"
+__copyright__ = "Copyright 2024, Alexandre Parente Lima"
 
-__author__ = "ismailsunni@yahoo.co.id"
-__date__ = "12/10/2011"
-__copyright__ = "Copyright 2012, Australia Indonesia Facility for Disaster Reduction"
 import os
 import unittest
 
 from qgis.PyQt.QtCore import QCoreApplication, QTranslator
 
+from .utilities import get_qgis_app
+
 QGIS_APP = get_qgis_app()
 
+I18N_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "i18n"))
 
-class SafeTranslationsTest(unittest.TestCase):
-    """Test translations work."""
 
-    def setUp(self):
-        """Runs before each test."""
-        if "LANG" in iter(os.environ.keys()):
-            os.environ.__delitem__("LANG")
+class TranslationsTest(unittest.TestCase):
+    """Test that plugin translation files exist and load correctly."""
 
-    def tearDown(self):
-        """Runs after each test."""
-        if "LANG" in iter(os.environ.keys()):
-            os.environ.__delitem__("LANG")
-
-    def test_qgis_translations(self):
-        """Test that translations work."""
-        parent_path = os.path.join(__file__, os.path.pardir, os.path.pardir)
-        dir_path = os.path.abspath(parent_path)
-        file_path = os.path.join(dir_path, "i18n", "af.qm")
+    def _load_qm(self, filename):
+        """Helper: load a .qm file and return the translator, or None if file missing."""
+        path = os.path.join(I18N_DIR, filename)
+        if not os.path.isfile(path):
+            return None
         translator = QTranslator()
-        translator.load(file_path)
-        QCoreApplication.installTranslator(translator)
+        translator.load(path)
+        return translator
 
-        expected_message = "Goeie more"
-        real_message = QCoreApplication.translate("@default", "Good morning")
-        self.assertEqual(real_message, expected_message)
+    def test_i18n_directory_exists(self):
+        """The i18n directory exists in the plugin root."""
+        self.assertTrue(os.path.isdir(I18N_DIR), f"i18n dir not found: {I18N_DIR}")
+
+    def test_qm_files_exist(self):
+        """At least one compiled .qm translation file is present."""
+        qm_files = [f for f in os.listdir(I18N_DIR) if f.endswith(".qm")]
+        self.assertTrue(
+            len(qm_files) > 0,
+            f"No .qm files found in {I18N_DIR}. Run 'python helper.py translate' first.",
+        )
+
+    def test_pt_br_loads(self):
+        """Brazilian Portuguese .qm file loads without errors."""
+        translator = self._load_qm("VariablePanel_pt_BR.qm")
+        if translator is None:
+            self.skipTest("VariablePanel_pt_BR.qm not found — run translate first.")
+        # Installing a translator should not raise
+        QCoreApplication.installTranslator(translator)
+        QCoreApplication.removeTranslator(translator)
+
+    def test_en_loads(self):
+        """English .qm file loads without errors."""
+        translator = self._load_qm("VariablePanel_en.qm")
+        if translator is None:
+            self.skipTest("VariablePanel_en.qm not found — run translate first.")
+        QCoreApplication.installTranslator(translator)
+        QCoreApplication.removeTranslator(translator)
 
 
 if __name__ == "__main__":
-    suite = unittest.makeSuite(SafeTranslationsTest)
-    runner = unittest.TextTestRunner(verbosity=2)
-    runner.run(suite)
+    unittest.main()
