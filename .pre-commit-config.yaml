@@ -1,0 +1,55 @@
+exclude: ".venv|tests/dev/|tests/fixtures/|plugin_{{cookiecutter.plugin_name_slug}}"
+fail_fast: false
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+        args:
+          - --maxkb=500
+      - id: check-case-conflict
+      - id: check-illegal-windows-names
+      - id: check-toml
+      - id: check-xml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: fix-byte-order-marker
+      - id: trailing-whitespace
+        args:
+          - --markdown-linebreak-ext=md
+
+  - repo: https://github.com/charliermarsh/ruff-pre-commit
+    rev: "v0.15.8"
+    hooks:
+      - id: ruff
+        args:
+          - --fix
+          - --target-version=py310
+        types_or:
+          - python
+          - pyi
+      - id: ruff-format
+        args:
+          - --line-length=88
+          - --target-version=py310
+        types_or:
+          - python
+          - pyi
+
+  # take care, it could conflicts with ruff-format
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 26.3.1
+    hooks:
+      - id: black
+        args:
+          - --target-version=py310
+
+  - repo: https://github.com/pycqa/isort
+    rev: 8.0.1
+    hooks:
+      - id: isort
+        args:
+          - --profile
+          - black
+          - --filter-files
