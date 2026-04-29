@@ -137,6 +137,8 @@ def run_tests(qgis_version=QGIS_TEST_VERSION, *pytest_args):
                 f"{REPO_ROOT}:/src",
                 "--user",
                 f"{os.getuid()}:{os.getgid()}",
+                "-e",
+                "HOME=/tmp",
                 image,
                 "bash",
                 "/src/.docker/run-docker-tests.sh",

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+export HOME=/tmp
+export PATH="/tmp/.local/bin:$PATH"
 pip3 install pytest --break-system-packages -q 2>/dev/null || \
     pip3 install pytest --user -q 2>/dev/null || \
     pip3 install pytest -q
