@@ -22,17 +22,17 @@
  ***************************************************************************/
 """
 
-from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtWidgets import QVBoxLayout, QWidget, QLabel, QTreeView
+from qgis.core import QgsExpressionContext, QgsExpressionContextUtils, QgsProject
 from qgis.gui import QgsDockWidget, QgsVariableEditorWidget
-from qgis.core import QgsExpressionContextUtils, QgsExpressionContext, QgsProject
-from qgis.utils import iface
+from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtWidgets import QTreeView, QVBoxLayout, QWidget
+from qgis.utils import iface
 
 
 def tr(string):
     """Translation function."""
-    return QCoreApplication.translate('VariablePanel', string)
+    return QCoreApplication.translate("VariablePanel", string)
 
 
 class VariablePanelDockWidget(QgsDockWidget):
@@ -52,7 +52,7 @@ class VariablePanelDockWidget(QgsDockWidget):
         # Store the ID of the currently active layer to handle saving.
         self.active_layer_id = None
         # Store the name ('project' or 'layer') of the last scope the user clicked on.
-        self.last_selected_scope_name = 'project'
+        self.last_selected_scope_name = "project"
         # Track the current editable scope index to avoid calling non-existent API getters.
         self.current_editable_index = 0
 
@@ -67,20 +67,25 @@ class VariablePanelDockWidget(QgsDockWidget):
         main_layout.addWidget(self.variable_editor)
 
         # Standard dialog buttons (OK, Cancel, Apply).
-        buttons = (QtWidgets.QDialogButtonBox.StandardButton.Ok |
-                   QtWidgets.QDialogButtonBox.StandardButton.Cancel |
-                   QtWidgets.QDialogButtonBox.StandardButton.Apply)
+        buttons = (
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+            | QtWidgets.QDialogButtonBox.StandardButton.Cancel
+            | QtWidgets.QDialogButtonBox.StandardButton.Apply
+        )
 
         self.button_box = QtWidgets.QDialogButtonBox(buttons)
         main_layout.addWidget(self.button_box)
 
         # Signal Connections
-        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Ok).clicked.connect(
-        self.applyChangesAndClose)
-        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Cancel).clicked.connect(
-        self.close)
-        self.button_box.button(QtWidgets.QDialogButtonBox.StandardButton.Apply).clicked.connect(
-        self.applyChanges)
+        self.button_box.button(
+            QtWidgets.QDialogButtonBox.StandardButton.Ok
+        ).clicked.connect(self.applyChangesAndClose)
+        self.button_box.button(
+            QtWidgets.QDialogButtonBox.StandardButton.Cancel
+        ).clicked.connect(self.close)
+        self.button_box.button(
+            QtWidgets.QDialogButtonBox.StandardButton.Apply
+        ).clicked.connect(self.applyChanges)
 
         # Connect to the signal that fires when the active layer changes in the QGIS Layers Panel.
         iface.layerTreeView().currentLayerChanged.connect(self.handleActiveLayerChange)
@@ -112,13 +117,13 @@ class VariablePanelDockWidget(QgsDockWidget):
         if self.active_layer_id:
             # Context order is [project, layer].
             if top_level_row == 0:
-                scope_name = 'project'
+                scope_name = "project"
             elif top_level_row == 1:
-                scope_name = 'layer'
+                scope_name = "layer"
         else:
             # Context order is just [project].
             if top_level_row == 0:
-                scope_name = 'project'
+                scope_name = "project"
 
         # Store the last valid scope selected by the user.
         if scope_name:
@@ -137,13 +142,13 @@ class VariablePanelDockWidget(QgsDockWidget):
 
         if self.active_layer_id:
             # Context order is [project, layer].
-            if target_scope == 'project':
+            if target_scope == "project":
                 index_to_set = 0
-            elif target_scope == 'layer':
+            elif target_scope == "layer":
                 index_to_set = 1
         else:
             # Context order is just [project].
-            if target_scope == 'project':
+            if target_scope == "project":
                 index_to_set = 0
 
         # Tell the widget which scope is the target for additions and update our state variable.
@@ -152,7 +157,11 @@ class VariablePanelDockWidget(QgsDockWidget):
 
     def refreshContext(self, *args):
         """Refreshes the editor when variables are changed externally (e.g. via Project/Layer Properties)."""
-        layer = self.project.mapLayer(self.active_layer_id) if self.active_layer_id else None
+        layer = (
+            self.project.mapLayer(self.active_layer_id)
+            if self.active_layer_id
+            else None
+        )
         self.handleActiveLayerChange(layer)
 
     def handleActiveLayerChange(self, layer):
@@ -176,13 +185,13 @@ class VariablePanelDockWidget(QgsDockWidget):
             self.active_layer_id = layer.id()
             context.appendScope(QgsExpressionContextUtils.projectScope(self.project))
             context.appendScope(QgsExpressionContextUtils.layerScope(layer))
-            self.last_selected_scope_name = 'project'
+            self.last_selected_scope_name = "project"
             # Connect to the signal that fires when the active layer's variables are changed externally.
             layer.customPropertyChanged.connect(self.refreshContext)
         else:
             # If no layer is selected, only show the project scope.
             context.appendScope(QgsExpressionContextUtils.projectScope(self.project))
-            self.last_selected_scope_name = 'project'
+            self.last_selected_scope_name = "project"
 
         self.variable_editor.setContext(context)
         # Set the default editable scope based on the new context.
@@ -193,11 +202,15 @@ class VariablePanelDockWidget(QgsDockWidget):
         if tree_view:
             # prevents connecting the same signal multiple times.
             try:
-                tree_view.selectionModel().currentChanged.disconnect(self.onVariableItemSelected)
+                tree_view.selectionModel().currentChanged.disconnect(
+                    self.onVariableItemSelected
+                )
             except (TypeError, RuntimeError):
                 pass
             # Reconnect the signal.
-            tree_view.selectionModel().currentChanged.connect(self.onVariableItemSelected)
+            tree_view.selectionModel().currentChanged.connect(
+                self.onVariableItemSelected
+            )
 
     def applyChanges(self):
         """
@@ -216,11 +229,15 @@ class VariablePanelDockWidget(QgsDockWidget):
             variables_dict = self.variable_editor.variablesInActiveScope()
 
             # Identify the scope by its index.
-            is_project_scope = (self.active_layer_id and i == 0) or (not self.active_layer_id and i == 0)
+            is_project_scope = (self.active_layer_id and i == 0) or (
+                not self.active_layer_id and i == 0
+            )
             is_layer_scope = self.active_layer_id and i == 1
 
             if is_project_scope:
-                QgsExpressionContextUtils.setProjectVariables(self.project, variables_dict)
+                QgsExpressionContextUtils.setProjectVariables(
+                    self.project, variables_dict
+                )
             elif is_layer_scope:
                 layer = self.project.mapLayer(self.active_layer_id)
                 if layer:

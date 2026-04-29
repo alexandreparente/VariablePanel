@@ -21,13 +21,15 @@
  *                                                                         *
  ***************************************************************************/
 """
-from qgis.PyQt.QtCore import QSettings, QTranslator, QLocale, QCoreApplication, Qt
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction
-from .variable_panel_dockwidget import VariablePanelDockWidget, tr
-from .resources import *
 
 import os.path
+
+from qgis.PyQt.QtCore import QCoreApplication, QLocale, QSettings, Qt, QTranslator
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction
+
+from .variable_panel_dockwidget import VariablePanelDockWidget, tr
+
 
 class VariablePanel:
     """QGIS Plugin Implementation."""
@@ -51,7 +53,9 @@ class VariablePanel:
         locale = self.settings.value("locale/userLocale", QLocale.system().name())
 
         # Initialize locale
-        locale_path = os.path.join(self.plugin_dir, 'i18n', 'VariablePanel_{}.qm'.format(locale))
+        locale_path = os.path.join(
+            self.plugin_dir, "i18n", "VariablePanel_{}.qm".format(locale)
+        )
 
         if os.path.exists(locale_path):
             self.translator = QTranslator()
@@ -60,9 +64,9 @@ class VariablePanel:
 
         # Declare instance attributes
         self.actions = []
-        self.menu = tr('&Variable Panel')
+        self.menu = tr("&Variable Panel")
         self.toolbar = self.iface.addToolBar(tr("Variable ToolBar"))
-        self.toolbar.setObjectName('VariablePanel')
+        self.toolbar.setObjectName("VariablePanel")
 
         self.variable_dock = None
 
@@ -77,8 +81,8 @@ class VariablePanel:
         status_tip=None,
         whats_this=None,
         parent=None,
-        checkable=True):
-
+        checkable=True,
+    ):
         """Add a toolbar icon to the toolbar.
 
         :param icon_path: Path to the icon for this action. Can be a resource
@@ -136,12 +140,11 @@ class VariablePanel:
     def initGui(self):
         """Initializes the GUI elements, including menu entries and toolbar icons, within the QGIS interface."""
 
-        icon_path = ':/plugins/variable_panel/mIconExpression.svg'
+        icon_path = os.path.join(self.plugin_dir, "mIconExpression.svg")
         # Adds an action to QGIS with an icon and text label function.
         self.add_action(
-            icon_path,
-            text=tr('Variable Panel'),
-            parent=self.iface.mainWindow())
+            icon_path, text=tr("Variable Panel"), parent=self.iface.mainWindow()
+        )
 
         # Initializes the dock widget in the specified side dock area.
         self.createDockWidget(self.sideDockWidgetArea)
@@ -153,7 +156,9 @@ class VariablePanel:
         self.variable_dock = VariablePanelDockWidget()
 
         # Allows the dock widget to be positioned on the left or right side of the interface.
-        self.variable_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.variable_dock.setAllowedAreas(
+            Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea
+        )
 
         # Prevents the dock widget from being set as floating.
         self.variable_dock.setFloating(False)
@@ -162,7 +167,9 @@ class VariablePanel:
         self.iface.addDockWidget(self.sideDockWidgetArea, self.variable_dock)
 
         # Tabifies the dock widget, but no other dock widgets are targeted.
-        self.iface.addTabifiedDockWidget(self.sideDockWidgetArea, self.variable_dock, [], True)
+        self.iface.addTabifiedDockWidget(
+            self.sideDockWidgetArea, self.variable_dock, [], True
+        )
 
         # Links the dock widget's visibility toggle action with the toolbar button.
         self.variable_dock.setToggleVisibilityAction(self.actions[0])
@@ -179,17 +186,21 @@ class VariablePanel:
         # Disconnect signals before unloading
         if self.variable_dock:
             try:
-                self.variable_dock.dockLocationChanged.disconnect(self.onDockLocationChanged)
+                self.variable_dock.dockLocationChanged.disconnect(
+                    self.onDockLocationChanged
+                )
                 self.iface.layerTreeView().currentLayerChanged.disconnect(  # ← corrigido
-                    self.variable_dock.handleActiveLayerChange)
+                    self.variable_dock.handleActiveLayerChange
+                )
                 self.variable_dock.project.customVariablesChanged.disconnect(
-                    self.variable_dock.refreshContext)
+                    self.variable_dock.refreshContext
+                )
             except (TypeError, RuntimeError):
                 pass
 
         # Removes each action from the QGIS menu and toolbar.
         for action in self.actions:
-            self.iface.removePluginMenu(tr('&Variable Panel'), action)
+            self.iface.removePluginMenu(tr("&Variable Panel"), action)
             self.iface.removeToolBarIcon(action)
         # Deletes the toolbar reference to clean up resources.
         del self.toolbar
