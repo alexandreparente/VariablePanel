@@ -26,8 +26,7 @@ from qgis.core import QgsExpressionContext, QgsExpressionContextUtils, QgsProjec
 from qgis.gui import QgsDockWidget, QgsVariableEditorWidget
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import QCoreApplication
-from qgis.PyQt.QtWidgets import QTreeView, QVBoxLayout, QWidget
-from qgis.utils import iface
+from qgis.PyQt.QtWidgets import QFrame, QTreeView, QVBoxLayout, QWidget
 
 
 def tr(string):
@@ -38,9 +37,13 @@ def tr(string):
 class VariablePanelDockWidget(QgsDockWidget):
     """The main dock widget for the Variable Panel plugin."""
 
-    def __init__(self, parent=None):
-        """Constructor."""
+    def __init__(self, iface, parent=None):
+        """Constructor.
+
+        :param iface: The QGIS interface instance.
+        """
         super(VariablePanelDockWidget, self).__init__(parent)
+        self.iface = iface
 
         # Basic Widget Setup
         self.setWindowTitle(tr("Variables"))
@@ -58,13 +61,28 @@ class VariablePanelDockWidget(QgsDockWidget):
 
         # UI Layout
         main_layout = QVBoxLayout()
+        # Remove the default style margins so the panel is as slim as other QGIS docks.
+        main_layout.setContentsMargins(0, 0, 0, 0)
         container = QWidget()
         container.setLayout(main_layout)
         self.setWidget(container)
 
         # A single, unified editor widget displays all variables.
-        self.variable_editor = QgsVariableEditorWidget(self)
-        main_layout.addWidget(self.variable_editor)
+        self.variable_editor = QgsVariableEditorWidget()
+        # The editor may carry its own internal margins; remove them as well.
+        if self.variable_editor.layout():
+            self.variable_editor.layout().setContentsMargins(0, 0, 0, 0)
+
+        # Add frames
+        editor_frame = QFrame()
+        editor_frame.setFrameShape(QFrame.Shape.StyledPanel)
+        frame_layout = QVBoxLayout(editor_frame)
+        frame_layout.setContentsMargins(4, 4, 4, 4)
+
+        # Gap between the editor's +/- buttons and the OK/Cancel/Apply row.
+        frame_layout.setSpacing(12)
+        frame_layout.addWidget(self.variable_editor)
+        main_layout.addWidget(editor_frame)
 
         # Standard dialog buttons (OK, Cancel, Apply).
         buttons = (
@@ -74,7 +92,7 @@ class VariablePanelDockWidget(QgsDockWidget):
         )
 
         self.button_box = QtWidgets.QDialogButtonBox(buttons)
-        main_layout.addWidget(self.button_box)
+        frame_layout.addWidget(self.button_box)
 
         # Signal Connections
         self.button_box.button(
@@ -82,19 +100,21 @@ class VariablePanelDockWidget(QgsDockWidget):
         ).clicked.connect(self.applyChangesAndClose)
         self.button_box.button(
             QtWidgets.QDialogButtonBox.StandardButton.Cancel
-        ).clicked.connect(self.close)
+        ).clicked.connect(self.cancelChanges)
         self.button_box.button(
             QtWidgets.QDialogButtonBox.StandardButton.Apply
         ).clicked.connect(self.applyChanges)
 
         # Connect to the signal that fires when the active layer changes in the QGIS Layers Panel.
-        iface.layerTreeView().currentLayerChanged.connect(self.handleActiveLayerChange)
+        self.iface.layerTreeView().currentLayerChanged.connect(
+            self.handleActiveLayerChange
+        )
 
         # Connect to the signal that fires when project variables are changed externally.
         self.project.customVariablesChanged.connect(self.refreshContext)
 
         # Initialize the UI with the current context.
-        self.handleActiveLayerChange(iface.activeLayer())
+        self.handleActiveLayerChange(self.iface.activeLayer())
 
     def onVariableItemSelected(self, current_index, previous_index):
         """
@@ -162,9 +182,15 @@ class VariablePanelDockWidget(QgsDockWidget):
             if self.active_layer_id
             else None
         )
-        self.handleActiveLayerChange(layer)
+        # Keep the scope the user had selected instead of resetting to "project".
+        self.handleActiveLayerChange(layer, reset_scope=False)
 
-    def handleActiveLayerChange(self, layer):
+    def onLayerCustomPropertyChanged(self, key):
+        """Refreshes only when the layer's variables change (ignores other custom properties)."""
+        if key in ("variableNames", "variableValues"):
+            self.refreshContext()
+
+    def handleActiveLayerChange(self, layer, reset_scope=True):
         """
         Rebuilds the editor's context based on the newly selected active layer.
         This is the main function for updating the panel's view.
@@ -174,7 +200,9 @@ class VariablePanelDockWidget(QgsDockWidget):
             previous_layer = self.project.mapLayer(self.active_layer_id)
             if previous_layer:
                 try:
-                    previous_layer.customPropertyChanged.disconnect(self.refreshContext)
+                    previous_layer.customPropertyChanged.disconnect(
+                        self.onLayerCustomPropertyChanged
+                    )
                 except (TypeError, RuntimeError):
                     pass
 
@@ -185,9 +213,10 @@ class VariablePanelDockWidget(QgsDockWidget):
             self.active_layer_id = layer.id()
             context.appendScope(QgsExpressionContextUtils.projectScope(self.project))
             context.appendScope(QgsExpressionContextUtils.layerScope(layer))
-            self.last_selected_scope_name = "project"
+            if reset_scope:
+                self.last_selected_scope_name = "project"
             # Connect to the signal that fires when the active layer's variables are changed externally.
-            layer.customPropertyChanged.connect(self.refreshContext)
+            layer.customPropertyChanged.connect(self.onLayerCustomPropertyChanged)
         else:
             # If no layer is selected, only show the project scope.
             context.appendScope(QgsExpressionContextUtils.projectScope(self.project))
@@ -247,6 +276,34 @@ class VariablePanelDockWidget(QgsDockWidget):
         self.variable_editor.setEditableScopeIndex(original_editable_index)
         # Reload the context to ensure the view is synchronized with the saved data.
         self.variable_editor.reloadContext()
+
+    def cancelChanges(self):
+        """Discard unsaved edits and close the DockWidget."""
+        self.variable_editor.reloadContext()
+        self.close()
+
+    def disconnectSignals(self):
+        """Disconnects all external signals (used when unloading the plugin)."""
+        for signal, slot in (
+            (
+                self.iface.layerTreeView().currentLayerChanged,
+                self.handleActiveLayerChange,
+            ),
+            (self.project.customVariablesChanged, self.refreshContext),
+        ):
+            try:
+                signal.disconnect(slot)
+            except (TypeError, RuntimeError):
+                pass
+        if self.active_layer_id:
+            layer = self.project.mapLayer(self.active_layer_id)
+            if layer:
+                try:
+                    layer.customPropertyChanged.disconnect(
+                        self.onLayerCustomPropertyChanged
+                    )
+                except (TypeError, RuntimeError):
+                    pass
 
     def applyChangesAndClose(self):
         """Apply changes and close the DockWidget."""
