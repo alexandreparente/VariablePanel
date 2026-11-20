@@ -2,27 +2,24 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="de">
 <context>
-    <name>VariablePanel</name>
+    <name>@default</name>
     <message>
-        <location filename="../variable_panel.py" line="222"/>
+        <location filename="../variable_panel.py" line="68"/>
         <source>&amp;Variable Panel</source>
         <translation>&amp;Variablenbedienfeld</translation>
     </message>
     <message>
-        <location filename="../variable_panel.py" line="64"/>
+        <location filename="../variable_panel.py" line="69"/>
         <source>Variable ToolBar</source>
         <translation>Variablenwerkzeugleiste</translation>
     </message>
     <message>
-        <location filename="../variable_panel.py" line="153"/>
+        <location filename="../variable_panel.py" line="146"/>
         <source>Variable Panel</source>
         <translation>Variablenbedienfeld</translation>
     </message>
-</context>
-<context>
-    <name>VariablePanelDockWidget</name>
     <message>
-        <location filename="../variable_panel_dockwidget.py" line="46"/>
+        <location filename="../variable_panel_dockwidget.py" line="49"/>
         <source>Variables</source>
         <translation>Variablen</translation>
     </message>
